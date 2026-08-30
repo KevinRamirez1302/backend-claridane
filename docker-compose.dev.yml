@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: clubaridane_db_dev
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: clubaridane
+      POSTGRES_PASSWORD: devpassword
+      POSTGRES_DB: clubaridane_dev
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"   # Accesible en localhost:5432 durante desarrollo
+
+volumes:
+  postgres_dev_data:

@@ -1,0 +1,167 @@
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ── Enums ──────────────────────────────────────────────────────────────────
+
+enum CategoriaNoticia {
+  club
+  competicion
+  fichaje
+  institucional
+}
+
+enum PlanId {
+  socio
+  socio_premium
+}
+
+enum NivelPatrocinador {
+  principal
+  oficial
+  colaborador
+}
+
+// ── Modelos ────────────────────────────────────────────────────────────────
+
+model Admin {
+  id            Int            @id @default(autoincrement())
+  username      String         @unique
+  passwordHash  String
+  creadoEn      DateTime       @default(now())
+  refreshTokens RefreshToken[]
+}
+
+model Socio {
+  id            Int            @id @default(autoincrement())
+  nombre        String
+  apellidos     String
+  email         String         @unique
+  passwordHash  String
+  telefono      String?
+  plan          PlanId
+  numSocio      String         @unique
+  activo        Boolean        @default(true)
+  eliminado     Boolean        @default(false)
+  creadoEn      DateTime       @default(now())
+  renovadoEn    DateTime?
+  refreshTokens RefreshToken[]
+}
+
+model RefreshToken {
+  id       Int      @id @default(autoincrement())
+  token    String   @unique
+  adminId  Int?
+  socioId  Int?
+  expira   DateTime
+  creadoEn DateTime @default(now())
+  admin    Admin?   @relation(fields: [adminId], references: [id], onDelete: Cascade)
+  socio    Socio?   @relation(fields: [socioId], references: [id], onDelete: Cascade)
+}
+
+model Noticia {
+  id             Int              @id @default(autoincrement())
+  titulo         String
+  resumen        String
+  contenido      String           @db.Text
+  imagen         String
+  imagenPublicId String?
+  fecha          DateTime
+  categoria      CategoriaNoticia
+  autor          String
+  creadoEn       DateTime         @default(now())
+}
+
+model Jugador {
+  id              Int      @id @default(autoincrement())
+  nombre          String
+  clasificaciones String[]
+  equipos         String[]
+  foto            String
+  fotoPublicId    String?
+  nacionalidad    String
+  edad            Int?
+  peso            Float?
+  altura          Float?
+  luchadas        Int?
+  puntosFavor     Int?
+  puntosContra    Int?
+  bio             String?  @db.Text
+}
+
+model Partido {
+  id          Int      @id @default(autoincrement())
+  esLocal     Boolean
+  rival       String
+  logoRival   String
+  competicion String
+  fecha       DateTime
+  resultado   String?
+  esProximo   Boolean  @default(false)
+}
+
+model PosicionClasificacion {
+  id           Int     @id @default(autoincrement())
+  posicion     Int
+  equipo       String
+  luchadas     Int
+  ganadas      Int
+  empatadas    Int
+  perdidas     Int
+  puntosFavor  Int
+  puntosContra Int
+  puntos       Int
+  esClub       Boolean @default(false)
+}
+
+model Patrocinador {
+  id           Int               @id @default(autoincrement())
+  nombre       String
+  logo         String
+  logoPublicId String?
+  url          String?
+  nivel        NivelPatrocinador
+}
+
+model HitoHistorico {
+  id             Int     @id @default(autoincrement())
+  anio           Int
+  titulo         String
+  descripcion    String  @db.Text
+  imagen         String?
+  imagenPublicId String?
+}
+
+model ElementoGaleria {
+  id          Int      @id @default(autoincrement())
+  tipo        String
+  url         String
+  publicId    String?
+  miniatura   String?
+  titulo      String
+  descripcion String?
+  fecha       DateTime
+}
+
+model FAQ {
+  id        Int    @id @default(autoincrement())
+  pregunta  String
+  respuesta String @db.Text
+  orden     Int    @default(0)
+}
+
+model PlanMembresia {
+  id         String   @id
+  nombre     String
+  precio     Float
+  beneficios String[]
+  destacado  Boolean
+  color      String
+}
