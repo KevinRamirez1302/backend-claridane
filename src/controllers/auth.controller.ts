@@ -53,18 +53,18 @@ export async function adminLogin(req: Request, res: Response, next: NextFunction
   }
 }
 
-// POST /api/auth/socio/login
+// POST /api/auth/socio-login
 export async function socioLogin(req: Request, res: Response, next: NextFunction) {
   try {
     const schema = z.object({
-      email: z.string().email(),
+      dni: z.string().min(1),
       password: z.string().min(1),
     });
-    const { email, password } = schema.parse(req.body);
+    const { dni, password } = schema.parse(req.body);
 
-    const socio = await prisma.socio.findUnique({ where: { email } });
+    const socio = await prisma.socio.findUnique({ where: { dni } });
     if (!socio || !(await bcrypt.compare(password, socio.passwordHash))) {
-      sendError(res, 401, 'INVALID_CREDENTIALS', 'Email o contraseña incorrectos');
+      sendError(res, 401, 'INVALID_CREDENTIALS', 'DNI o contraseña incorrectos');
       return;
     }
     if (!socio.activo || socio.eliminado) {
@@ -82,8 +82,8 @@ export async function socioLogin(req: Request, res: Response, next: NextFunction
 
     setRefreshCookie(res, refreshToken);
     sendSuccess(res, {
-      accessToken,
-      user: { id: socio.id, email: socio.email, nombre: socio.nombre, rol: 'socio' },
+      token: accessToken, // El frontend espera { token, socio }
+      socio: { id: socio.id, email: socio.email, nombre: socio.nombre, dni: socio.dni, plan: socio.plan },
     });
   } catch (err) {
     next(err);
