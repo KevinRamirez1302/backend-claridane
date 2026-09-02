@@ -9,7 +9,7 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// ── Enums ──────────────────────────────────────────────────────────────────
+// ────────────── Enums ──────────────
 
 enum CategoriaNoticia {
   club
@@ -29,7 +29,13 @@ enum NivelPatrocinador {
   colaborador
 }
 
-// ── Modelos ────────────────────────────────────────────────────────────────
+enum EstadoSolicitud {
+  pendiente
+  aceptada
+  rechazada
+}
+
+// ────────────── Modelos ──────────────
 
 model Admin {
   id            Int            @id @default(autoincrement())
@@ -44,6 +50,7 @@ model Socio {
   nombre        String
   apellidos     String
   email         String         @unique
+  dni           String         @unique
   passwordHash  String
   telefono      String?
   plan          PlanId
@@ -164,4 +171,17 @@ model PlanMembresia {
   beneficios String[]
   destacado  Boolean
   color      String
+}
+
+model Solicitud {
+  id              Int      @id @default(autoincrement())
+  nombre          String
+  apellidos       String
+  email           String
+  telefono        String?
+  dni             String   @unique
+  fechaNacimiento String
+  plan            PlanId
+  estado          EstadoSolicitud @default(pendiente)
+  fechaSolicitud  DateTime @default(now())
 }

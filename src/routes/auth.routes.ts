@@ -6,7 +6,7 @@ import { authRateLimiter } from '../middleware/rateLimiter';
 const router = Router();
 
 router.post('/admin/login', authRateLimiter, adminLogin);
-router.post('/socio/login', authRateLimiter, socioLogin);
+router.post('/socio-login', authRateLimiter, socioLogin);
 router.post('/refresh', refreshToken);
 router.post('/logout', logout);
 router.get('/me', authenticate, me);
