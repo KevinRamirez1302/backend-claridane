@@ -19,8 +19,8 @@ export async function createSolicitud(req: Request, res: Response, next: NextFun
     const { nombre, apellidos, email, telefono, dni, fechaNacimiento, plan } = req.body;
     
     // Check if DNI already has an active request or is a member
-    const existing = await prisma.solicitud.findUnique({ where: { dni } });
-    if (existing && existing.estado === 'pendiente') {
+    const existing = await prisma.solicitud.findFirst({ where: { dni, estado: 'pendiente' } });
+    if (existing) {
       sendError(res, 400, 'ALREADY_EXISTS', 'Ya tienes una solicitud pendiente.');
       return;
     }

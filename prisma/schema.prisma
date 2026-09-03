@@ -179,7 +179,7 @@ model Solicitud {
   apellidos       String
   email           String
   telefono        String?
-  dni             String   @unique
+  dni             String
   fechaNacimiento String
   plan            PlanId
   estado          EstadoSolicitud @default(pendiente)
