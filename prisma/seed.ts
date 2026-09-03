@@ -27,6 +27,12 @@ async function main() {
       },
     });
     console.log('✅ Admin creado: admin / [contraseña desde .env]');
+  } else {
+    await prisma.admin.update({
+      where: { username: 'admin' },
+      data: { passwordHash: await bcrypt.hash(adminPassword, 12) },
+    });
+    console.log('✅ Admin existente actualizado con nueva contraseña');
   }
 
   // ── Planes de membresía ──────────────────────────────────────────────────
