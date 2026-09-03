@@ -65,12 +65,12 @@ export async function acceptSolicitud(req: Request, res: Response, next: NextFun
       }),
       prisma.socio.create({
         data: {
-          nombre: `${solicitud.nombre} ${solicitud.apellidos}`,
-          apellidos: '', // Concatenated in nombre for simplicity based on original spec
+          nombre: solicitud.nombre,
+          apellidos: solicitud.apellidos,
           email: solicitud.email,
           dni: solicitud.dni,
           passwordHash,
-          telefono: solicitud.telefono,
+          telefono: solicitud.telefono ?? null,
           plan: solicitud.plan,
           numSocio,
         }

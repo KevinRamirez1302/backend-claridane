@@ -10,15 +10,23 @@ async function main() {
   console.log('🌱 Iniciando seed de la base de datos...');
 
   // ── Admin inicial ────────────────────────────────────────────────────────
+  const adminPassword = process.env.ADMIN_PASSWORD;
+  if (!adminPassword) {
+    throw new Error(
+      '❌ ADMIN_PASSWORD no está definida en .env.\n' +
+      'Añade: ADMIN_PASSWORD=tu_contraseña_segura'
+    );
+  }
+
   const adminExistente = await prisma.admin.findUnique({ where: { username: 'admin' } });
   if (!adminExistente) {
     await prisma.admin.create({
       data: {
         username: 'admin',
-        passwordHash: await bcrypt.hash('123456', 12),
+        passwordHash: await bcrypt.hash(adminPassword, 12),
       },
     });
-    console.log('✅ Admin creado: admin / 123456');
+    console.log('✅ Admin creado: admin / [contraseña desde .env]');
   }
 
   // ── Planes de membresía ──────────────────────────────────────────────────
