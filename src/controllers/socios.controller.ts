@@ -14,9 +14,10 @@ const registroSchema = z.object({
   password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres'),
   planId: z.enum(['socio', 'socio_premium']),
   telefono: z.string().optional(),
+  dni: z.string().min(1, 'El DNI es obligatorio'),
 });
 
-function generarNumSocio(id: number): string {
+export function generarNumSocio(id: number): string {
   return `ARI-${String(id).padStart(5, '0')}`;
 }
 
@@ -43,7 +44,7 @@ export async function registroSocio(req: Request, res: Response, next: NextFunct
     const socioActualizado = await prisma.socio.update({
       where: { id: socio.id },
       data: { numSocio: generarNumSocio(socio.id) },
-      select: { id: true, nombre: true, apellidos: true, email: true, plan: true, numSocio: true },
+      select: { id: true, nombre: true, apellidos: true, email: true, dni: true, plan: true, numSocio: true },
     });
 
     sendSuccess(res, socioActualizado, 201);
@@ -59,7 +60,7 @@ export async function getMiPerfil(req: AuthRequest, res: Response, next: NextFun
       where: { id: req.user!.id },
       select: {
         id: true, nombre: true, apellidos: true, email: true,
-        telefono: true, plan: true, numSocio: true,
+        dni: true, telefono: true, plan: true, numSocio: true,
         activo: true, creadoEn: true, renovadoEn: true,
       },
     });
@@ -82,7 +83,7 @@ export async function updateMiPerfil(req: AuthRequest, res: Response, next: Next
     const socio = await prisma.socio.update({
       where: { id: req.user!.id },
       data,
-      select: { id: true, nombre: true, apellidos: true, email: true, telefono: true, plan: true, numSocio: true },
+      select: { id: true, nombre: true, apellidos: true, email: true, dni: true, telefono: true, plan: true, numSocio: true },
     });
     sendSuccess(res, socio);
   } catch (err) {
@@ -134,7 +135,7 @@ export async function listSocios(req: Request, res: Response, next: NextFunction
         orderBy: { creadoEn: 'desc' },
         skip,
         take: limit,
-        select: { id: true, nombre: true, apellidos: true, email: true, plan: true, numSocio: true, activo: true, creadoEn: true },
+        select: { id: true, nombre: true, apellidos: true, email: true, dni: true, plan: true, numSocio: true, activo: true, creadoEn: true },
       }),
       prisma.socio.count({ where }),
     ]);
@@ -150,9 +151,34 @@ export async function getSocio(req: Request, res: Response, next: NextFunction) 
   try {
     const socio = await prisma.socio.findUnique({
       where: { id: Number(req.params.id) },
-      select: { id: true, nombre: true, apellidos: true, email: true, telefono: true, plan: true, numSocio: true, activo: true, creadoEn: true, renovadoEn: true },
+      select: { id: true, nombre: true, apellidos: true, email: true, dni: true, telefono: true, plan: true, numSocio: true, activo: true, creadoEn: true, renovadoEn: true },
     });
     if (!socio) { sendError(res, 404, 'NOT_FOUND', 'Socio no encontrado'); return; }
+    sendSuccess(res, socio);
+  } catch (err) {
+    next(err);
+  }
+}
+
+// PUT /api/socios/:id — Admin only (actualización completa de perfil)
+export async function updateSocioAdmin(req: Request, res: Response, next: NextFunction) {
+  try {
+    const schema = z.object({
+      nombre: z.string().min(1).optional(),
+      apellidos: z.string().min(1).optional(),
+      email: z.string().email().optional(),
+      dni: z.string().min(1).optional(),
+      telefono: z.string().nullable().optional(),
+      plan: z.enum(['socio', 'socio_premium']).optional(),
+      activo: z.boolean().optional(),
+    });
+    const data = schema.parse(req.body);
+
+    const socio = await prisma.socio.update({
+      where: { id: Number(req.params.id) },
+      data,
+      select: { id: true, nombre: true, apellidos: true, email: true, dni: true, telefono: true, plan: true, numSocio: true, activo: true, creadoEn: true, renovadoEn: true },
+    });
     sendSuccess(res, socio);
   } catch (err) {
     next(err);
