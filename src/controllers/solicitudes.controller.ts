@@ -5,7 +5,9 @@ import { sendSuccess, sendError } from '../utils/response';
 
 export async function getAllSolicitudes(req: Request, res: Response, next: NextFunction) {
   try {
+    const { estado } = req.query as { estado?: 'pendiente' | 'aceptada' | 'rechazada' };
     const solicitudes = await prisma.solicitud.findMany({
+      where: estado ? { estado } : undefined,
       orderBy: { fechaSolicitud: 'desc' },
     });
     sendSuccess(res, solicitudes);
@@ -13,6 +15,7 @@ export async function getAllSolicitudes(req: Request, res: Response, next: NextF
     next(err);
   }
 }
+
 
 export async function createSolicitud(req: Request, res: Response, next: NextFunction) {
   try {
@@ -56,31 +59,35 @@ export async function acceptSolicitud(req: Request, res: Response, next: NextFun
 
     const defaultPassword = '123456';
     const passwordHash = await bcrypt.hash(defaultPassword, 10);
-    const numSocio = `ARD-${new Date().getFullYear()}-${Math.floor(Math.random() * 1000).toString().padStart(4, '0')}`;
 
-    const [updatedSolicitud, nuevoSocio] = await prisma.$transaction([
+    // Crear socio con numSocio temporal, luego actualizar con id real (sin colisiones)
+    const nuevoSocio = await prisma.socio.create({
+      data: {
+        nombre: solicitud.nombre,
+        apellidos: solicitud.apellidos,
+        email: solicitud.email,
+        dni: solicitud.dni,
+        passwordHash,
+        telefono: solicitud.telefono ?? null,
+        plan: solicitud.plan,
+        numSocio: `ARD-TEMP-${Date.now()}`,
+      },
+    });
+
+    const [updatedSolicitud, socioFinal] = await prisma.$transaction([
       prisma.solicitud.update({
         where: { id: Number(id) },
-        data: { estado: 'aceptada' }
+        data: { estado: 'aceptada' },
       }),
-      prisma.socio.create({
-        data: {
-          nombre: solicitud.nombre,
-          apellidos: solicitud.apellidos,
-          email: solicitud.email,
-          dni: solicitud.dni,
-          passwordHash,
-          telefono: solicitud.telefono ?? null,
-          plan: solicitud.plan,
-          numSocio,
-        }
-      })
+      prisma.socio.update({
+        where: { id: nuevoSocio.id },
+        data: { numSocio: `ARD-${new Date().getFullYear()}-${String(nuevoSocio.id).padStart(4, '0')}` },
+      }),
     ]);
 
-    // Format password to send it back so the admin can copy it
     const socioData = {
-      ...nuevoSocio,
-      password: defaultPassword
+      ...socioFinal,
+      password: defaultPassword,
     };
 
     sendSuccess(res, { solicitud: updatedSolicitud, socio: socioData });
@@ -88,6 +95,7 @@ export async function acceptSolicitud(req: Request, res: Response, next: NextFun
     next(err);
   }
 }
+
 
 export async function rejectSolicitud(req: Request, res: Response, next: NextFunction) {
   try {

@@ -1,15 +1,12 @@
 import { Router } from 'express';
 import {
-  registroSocio, getMiPerfil, updateMiPerfil, cambiarPassword,
+  getMiPerfil, updateMiPerfil, cambiarPassword,
   listSocios, getSocio, toggleEstadoSocio, deleteSocio,
 } from '../controllers/socios.controller';
 import { authenticate } from '../middleware/authenticate';
 import { requireRole } from '../middleware/requireRole';
 
 const router = Router();
-
-// Rutas públicas
-router.post('/registro', registroSocio);
 
 // Rutas de Socio autenticado (perfil propio)
 router.get('/me', authenticate, requireRole('socio'), getMiPerfil);
