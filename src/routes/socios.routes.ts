@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import {
-  getMiPerfil, updateMiPerfil, cambiarPassword,
-  listSocios, getSocio, toggleEstadoSocio, deleteSocio,
+  registroSocio, getMiPerfil, updateMiPerfil, cambiarPassword,
+  listSocios, getSocio, updateSocioAdmin, toggleEstadoSocio, deleteSocio,
 } from '../controllers/socios.controller';
 import { authenticate } from '../middleware/authenticate';
 import { requireRole } from '../middleware/requireRole';
@@ -16,6 +16,7 @@ router.post('/me/cambiar-password', authenticate, requireRole('socio'), cambiarP
 // Rutas de Admin
 router.get('/', authenticate, requireRole('admin'), listSocios);
 router.get('/:id', authenticate, requireRole('admin'), getSocio);
+router.put('/:id', authenticate, requireRole('admin'), updateSocioAdmin);
 router.patch('/:id/estado', authenticate, requireRole('admin'), toggleEstadoSocio);
 router.delete('/:id', authenticate, requireRole('admin'), deleteSocio);
 

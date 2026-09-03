@@ -12,6 +12,7 @@ import galeriaRoutes from './galeria.routes';
 import faqsRoutes from './faqs.routes';
 import contactoRoutes from './contacto.routes';
 import solicitudesRoutes from './solicitudes.routes';
+import equiposRoutes from './equipos.routes';
 
 const router = Router();
 
@@ -28,5 +29,7 @@ router.use('/galeria', galeriaRoutes);
 router.use('/faqs', faqsRoutes);
 router.use('/contacto', contactoRoutes);
 router.use('/solicitudes', solicitudesRoutes);
+router.use('/equipos', equiposRoutes);
 
 export default router;
+

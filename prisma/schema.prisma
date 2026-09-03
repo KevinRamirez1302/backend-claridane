@@ -185,3 +185,13 @@ model Solicitud {
   estado          EstadoSolicitud @default(pendiente)
   fechaSolicitud  DateTime @default(now())
 }
+
+model EquipoRival {
+  id        Int     @id @default(autoincrement())
+  nombre    String
+  municipio String
+  isla      String
+  terrero   String
+  categoria String
+  logo      String?
+}

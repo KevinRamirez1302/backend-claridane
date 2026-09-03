@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import bcrypt from 'bcryptjs';
 import { prisma } from '../config/prisma';
 import { sendSuccess, sendError } from '../utils/response';
+import { generarNumSocio } from './socios.controller';
 
 export async function getAllSolicitudes(req: Request, res: Response, next: NextFunction) {
   try {
@@ -25,6 +26,13 @@ export async function createSolicitud(req: Request, res: Response, next: NextFun
     const existing = await prisma.solicitud.findFirst({ where: { dni, estado: 'pendiente' } });
     if (existing) {
       sendError(res, 400, 'ALREADY_EXISTS', 'Ya tienes una solicitud pendiente.');
+      return;
+    }
+
+    // Verificar que no existe ya como socio activo
+    const socioExistente = await prisma.socio.findUnique({ where: { dni } });
+    if (socioExistente && !socioExistente.eliminado) {
+      sendError(res, 400, 'ALREADY_MEMBER', 'Ya existe un socio registrado con ese DNI.');
       return;
     }
 
@@ -81,7 +89,7 @@ export async function acceptSolicitud(req: Request, res: Response, next: NextFun
       }),
       prisma.socio.update({
         where: { id: nuevoSocio.id },
-        data: { numSocio: `ARD-${new Date().getFullYear()}-${String(nuevoSocio.id).padStart(4, '0')}` },
+        data: { numSocio: generarNumSocio(nuevoSocio.id) },
       }),
     ]);
 

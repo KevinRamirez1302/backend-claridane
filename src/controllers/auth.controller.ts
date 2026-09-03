@@ -81,9 +81,14 @@ export async function socioLogin(req: Request, res: Response, next: NextFunction
     });
 
     setRefreshCookie(res, refreshToken);
+    const socioData = { id: socio.id, email: socio.email, nombre: socio.nombre, dni: socio.dni, plan: socio.plan };
     sendSuccess(res, {
-      token: accessToken, // El frontend espera { token, socio }
-      socio: { id: socio.id, email: socio.email, nombre: socio.nombre, dni: socio.dni, plan: socio.plan },
+      // Formato unificado: accessToken + user (compatible con useAuthStore)
+      accessToken,
+      user: { id: socio.id, email: socio.email, nombre: socio.nombre, rol: 'socio' as const },
+      // Retrocompatibilidad con useMembershipStore.loginSocio
+      token: accessToken,
+      socio: socioData,
     });
   } catch (err) {
     next(err);
