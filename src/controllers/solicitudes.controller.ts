@@ -22,7 +22,7 @@ export async function createSolicitud(req: Request, res: Response, next: NextFun
   try {
     const { nombre, apellidos, email, telefono, dni, fechaNacimiento, plan } = req.body;
     
-    // Check if DNI already has an active request or is a member
+    // Verificar si ya existe una solicitud pendiente con ese DNI
     const existing = await prisma.solicitud.findFirst({ where: { dni, estado: 'pendiente' } });
     if (existing) {
       sendError(res, 400, 'ALREADY_EXISTS', 'Ya tienes una solicitud pendiente.');
@@ -30,7 +30,7 @@ export async function createSolicitud(req: Request, res: Response, next: NextFun
     }
 
     // Verificar que no existe ya como socio activo
-    const socioExistente = await prisma.socio.findUnique({ where: { dni } });
+    const socioExistente = await prisma.socio.findFirst({ where: { dni } });
     if (socioExistente && !socioExistente.eliminado) {
       sendError(res, 400, 'ALREADY_MEMBER', 'Ya existe un socio registrado con ese DNI.');
       return;

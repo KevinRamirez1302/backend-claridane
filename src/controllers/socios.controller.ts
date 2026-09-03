@@ -14,7 +14,6 @@ const registroSchema = z.object({
   password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres'),
   planId: z.enum(['socio', 'socio_premium']),
   telefono: z.string().optional(),
-  dni: z.string().min(1, 'El DNI es obligatorio'),
 });
 
 export function generarNumSocio(id: number): string {
