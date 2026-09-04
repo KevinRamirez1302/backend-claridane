@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import bcrypt from 'bcryptjs';
+import { z } from 'zod';
 import { prisma } from '../config/prisma';
 import { sendSuccess, sendError } from '../utils/response';
 import { generarNumSocio } from './socios.controller';
@@ -17,36 +18,50 @@ export async function getAllSolicitudes(req: Request, res: Response, next: NextF
   }
 }
 
+const solicitudSchema = z.object({
+  nombre:          z.string().min(1, 'El nombre es requerido'),
+  apellidos:       z.string().min(1, 'Los apellidos son requeridos'),
+  email:           z.string().email('Email inválido'),
+  dni:             z.string().min(1, 'El DNI es requerido'),
+  fechaNacimiento: z.string().min(1, 'La fecha de nacimiento es requerida'),
+  plan:            z.enum(['socio', 'socio_premium'], { errorMap: () => ({ message: 'Plan inválido' }) }),
+  telefono:        z.string().optional(),
+});
 
 export async function createSolicitud(req: Request, res: Response, next: NextFunction) {
   try {
-    const { nombre, apellidos, email, telefono, dni, fechaNacimiento, plan } = req.body;
-    
-    // Verificar si ya existe una solicitud pendiente con ese DNI
+    // 1. Validar campos requeridos antes de tocar la BD
+    const parsed = solicitudSchema.safeParse(req.body);
+    if (!parsed.success) {
+      sendError(res, 400, 'VALIDATION_ERROR', parsed.error.errors.map(e => e.message).join(', '));
+      return;
+    }
+    const { nombre, apellidos, email, telefono, dni, fechaNacimiento, plan } = parsed.data;
+
+    // 2. Verificar si ya existe una solicitud pendiente con ese DNI
     const existing = await prisma.solicitud.findFirst({ where: { dni, estado: 'pendiente' } });
     if (existing) {
-      sendError(res, 400, 'ALREADY_EXISTS', 'Ya tienes una solicitud pendiente.');
+      sendError(res, 400, 'ALREADY_EXISTS', 'Ya existe una solicitud pendiente con ese DNI. El club revisará tu solicitud próximamente.');
       return;
     }
 
-    // Verificar que no existe ya como socio activo
-    const socioExistente = await prisma.socio.findFirst({ where: { dni } });
-    if (socioExistente && !socioExistente.eliminado) {
-      sendError(res, 400, 'ALREADY_MEMBER', 'Ya existe un socio registrado con ese DNI.');
-      return;
-    }
-
-    const nuevaSolicitud = await prisma.solicitud.create({
-      data: {
-        nombre,
-        apellidos,
-        email,
-        telefono,
-        dni,
-        fechaNacimiento,
-        plan,
-        estado: 'pendiente'
+    // 3. Verificar que no existe ya como socio activo
+    //    Envuelto en try/catch por si la migración aún no se aplicó en producción
+    //    (columna Socio.dni puede no existir todavía)
+    try {
+      const socioExistente = await prisma.socio.findFirst({ where: { dni } });
+      if (socioExistente && !socioExistente.eliminado) {
+        sendError(res, 400, 'ALREADY_MEMBER', 'Ya existe un socio registrado con ese DNI. Si tienes problemas para acceder, contacta con el club.');
+        return;
       }
+    } catch {
+      // Si falla (columna dni no existe aún en BD), continuamos sin bloquear la solicitud
+      console.warn('⚠️  No se pudo verificar Socio.dni — ¿migración pendiente en producción?');
+    }
+
+    // 4. Crear la solicitud
+    const nuevaSolicitud = await prisma.solicitud.create({
+      data: { nombre, apellidos, email, telefono, dni, fechaNacimiento, plan, estado: 'pendiente' },
     });
 
     sendSuccess(res, nuevaSolicitud, 201);
@@ -108,14 +123,13 @@ export async function acceptSolicitud(req: Request, res: Response, next: NextFun
   }
 }
 
-
 export async function rejectSolicitud(req: Request, res: Response, next: NextFunction) {
   try {
     const { id } = req.params;
-    
+
     const solicitud = await prisma.solicitud.update({
       where: { id: Number(id) },
-      data: { estado: 'rechazada' }
+      data: { estado: 'rechazada' },
     });
 
     sendSuccess(res, solicitud);
