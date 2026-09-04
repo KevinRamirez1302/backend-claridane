@@ -12,6 +12,10 @@ import { generalRateLimiter } from './middleware/rateLimiter';
 
 const app = express();
 
+// ── Proxy (Nginx en producción) ───────────────────────────────────────────────
+// Necesario para que express-rate-limit lea la IP real del cliente y no la del proxy
+app.set('trust proxy', 1);
+
 // ── Seguridad ────────────────────────────────────────────────────────────────
 app.use(helmet());
 app.use(
