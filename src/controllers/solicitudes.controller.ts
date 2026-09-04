@@ -68,37 +68,41 @@ export async function acceptSolicitud(req: Request, res: Response, next: NextFun
     const defaultPassword = '123456';
     const passwordHash = await bcrypt.hash(defaultPassword, 10);
 
-    // Crear socio con numSocio temporal, luego actualizar con id real (sin colisiones)
-    const nuevoSocio = await prisma.socio.create({
-      data: {
-        nombre: solicitud.nombre,
-        apellidos: solicitud.apellidos,
-        email: solicitud.email,
-        dni: solicitud.dni,
-        passwordHash,
-        telefono: solicitud.telefono ?? null,
-        plan: solicitud.plan,
-        numSocio: `ARD-TEMP-${Date.now()}`,
-      },
+    // Todo dentro de una transacción para garantizar consistencia
+    const [updatedSolicitud, socioFinal] = await prisma.$transaction(async (tx) => {
+      // Crear socio con numSocio temporal
+      const nuevoSocio = await tx.socio.create({
+        data: {
+          nombre: solicitud.nombre,
+          apellidos: solicitud.apellidos,
+          email: solicitud.email,
+          dni: solicitud.dni,
+          passwordHash,
+          telefono: solicitud.telefono ?? null,
+          plan: solicitud.plan,
+          numSocio: `ARD-TEMP-${Date.now()}`,
+        },
+      });
+
+      // Actualizar solicitud a aceptada y asignar numSocio definitivo en paralelo
+      const [sol, socio] = await Promise.all([
+        tx.solicitud.update({
+          where: { id: Number(id) },
+          data: { estado: 'aceptada' },
+        }),
+        tx.socio.update({
+          where: { id: nuevoSocio.id },
+          data: { numSocio: generarNumSocio(nuevoSocio.id) },
+        }),
+      ]);
+
+      return [sol, socio];
     });
 
-    const [updatedSolicitud, socioFinal] = await prisma.$transaction([
-      prisma.solicitud.update({
-        where: { id: Number(id) },
-        data: { estado: 'aceptada' },
-      }),
-      prisma.socio.update({
-        where: { id: nuevoSocio.id },
-        data: { numSocio: generarNumSocio(nuevoSocio.id) },
-      }),
-    ]);
+    // No devolver passwordHash ni la contraseña en plano en la respuesta
+    const { passwordHash: _omit, ...socioPublico } = socioFinal as typeof socioFinal & { passwordHash: string };
 
-    const socioData = {
-      ...socioFinal,
-      password: defaultPassword,
-    };
-
-    sendSuccess(res, { solicitud: updatedSolicitud, socio: socioData });
+    sendSuccess(res, { solicitud: updatedSolicitud, socio: socioPublico });
   } catch (err) {
     next(err);
   }

@@ -8,6 +8,9 @@ import { requireRole } from '../middleware/requireRole';
 
 const router = Router();
 
+// Ruta pública — registro de nuevo socio
+router.post('/registro', registroSocio);
+
 // Rutas de Socio autenticado (perfil propio)
 router.get('/me', authenticate, requireRole('socio'), getMiPerfil);
 router.patch('/me', authenticate, requireRole('socio'), updateMiPerfil);
